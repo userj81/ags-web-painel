@@ -2,12 +2,11 @@
 
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { Download, Calendar, Filter, ArrowLeft, ChevronDown, X } from "lucide-react"
+import { Calendar, Filter, ArrowLeft, ChevronDown, X, FileText } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useInvestor } from "@/contexts/investor-context"
-import { getComprovantePath } from "@/lib/investors-data"
 
 export default function ExtratoPage() {
   const router = useRouter()
@@ -18,7 +17,6 @@ export default function ExtratoPage() {
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
   const [statusFilter, setStatusFilter] = useState("Todos")
-  const [competenceFilter, setCompetenceFilter] = useState("")
   const [activeFilters, setActiveFilters] = useState<string[]>([])
 
   // Usa os comprovantes reais do investidor, ordenados por data (mais recente primeiro)
@@ -33,7 +31,6 @@ export default function ExtratoPage() {
     const filters: string[] = []
     if (dateFrom && dateTo) filters.push(`Período: ${dateFrom} - ${dateTo}`)
     if (statusFilter !== "Todos") filters.push(`Status: ${statusFilter}`)
-    if (competenceFilter) filters.push(`Competência: ${competenceFilter}`)
     setActiveFilters(filters)
     setShowFilters(false)
   }
@@ -42,17 +39,11 @@ export default function ExtratoPage() {
     setDateFrom("")
     setDateTo("")
     setStatusFilter("Todos")
-    setCompetenceFilter("")
     setActiveFilters([])
   }
 
   const removeFilter = (filterToRemove: string) => {
     setActiveFilters(activeFilters.filter((f) => f !== filterToRemove))
-  }
-
-  const handleDownloadPdf = (arquivo: string) => {
-    const path = getComprovantePath(currentInvestor.documentFolder, arquivo)
-    window.open(path, "_blank")
   }
 
   const totalPaid = paymentData.reduce((sum, p) => sum + p.valor, 0)
@@ -74,14 +65,14 @@ export default function ExtratoPage() {
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div>
             <h2 className="text-[#04164E] font-bold text-2xl md:text-3xl">Extrato</h2>
-            <p className="text-[#04164E]/60 text-sm md:text-base mt-1">Histórico de pagamentos e comprovantes.</p>
+            <p className="text-[#04164E]/60 text-sm md:text-base mt-1">Histórico de pagamentos realizados.</p>
           </div>
 
           <Card className="p-4 bg-white border border-[#04164E]/10">
             <div className="space-y-2 text-sm">
               <div className="flex justify-between gap-8">
                 <span className="text-[#04164E]/60">Pagamentos realizados:</span>
-                <span className="text-[#04164E] font-semibold">{currentInvestor.numeroSaques}</span>
+                <span className="text-[#04164E] font-semibold">{currentInvestor.comprovantes.length}</span>
               </div>
               <div className="flex justify-between gap-8">
                 <span className="text-[#04164E]/60">Total recebido:</span>
@@ -98,6 +89,7 @@ export default function ExtratoPage() {
         </div>
       </div>
 
+      {/* Próximo pagamento */}
       <Card className="p-6 mb-6 bg-gradient-to-r from-[#04164E]/5 to-white border border-[#04164E]/10">
         <div className="flex items-start justify-between">
           <div>
@@ -121,6 +113,23 @@ export default function ExtratoPage() {
         </div>
       </Card>
 
+      {/* Aviso comprovantes */}
+      <Card className="p-4 mb-6 bg-[#04164E]/5 border border-[#04164E]/10">
+        <div className="flex items-center gap-3">
+          <FileText className="h-5 w-5 text-[#04164E]" />
+          <p className="text-[#04164E] text-sm">
+            Para baixar comprovantes de pagamento, acesse a seção{" "}
+            <button 
+              onClick={() => router.push("/dashboard/documentos")}
+              className="font-semibold text-[#00E000] hover:underline"
+            >
+              Documentos
+            </button>
+            .
+          </p>
+        </div>
+      </Card>
+
       {/* Filtros */}
       <Card className="p-4 md:p-6 mb-6 bg-white border border-[#04164E]/10">
         <div className="flex items-center justify-between mb-4">
@@ -141,8 +150,7 @@ export default function ExtratoPage() {
 
         {showFilters && (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Período */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="text-[#04164E]/60 text-sm mb-2 block">De</label>
                 <input
@@ -161,8 +169,6 @@ export default function ExtratoPage() {
                   className="w-full px-3 py-2 border border-[#04164E]/20 rounded-lg focus:outline-none focus:border-[#04164E] text-sm"
                 />
               </div>
-
-              {/* Status */}
               <div>
                 <label className="text-[#04164E]/60 text-sm mb-2 block">Status</label>
                 <select
@@ -188,15 +194,10 @@ export default function ExtratoPage() {
               >
                 Limpar filtros
               </Button>
-              <Button variant="ghost" className="text-[#04164E]/60 hover:text-[#04164E] hover:bg-[#04164E]/5 text-sm">
-                <Download className="h-4 w-4 mr-2" />
-                Exportar CSV
-              </Button>
             </div>
           </div>
         )}
 
-        {/* Active Filters Chips */}
         {activeFilters.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-[#04164E]/10">
             {activeFilters.map((filter, index) => (
@@ -211,6 +212,7 @@ export default function ExtratoPage() {
         )}
       </Card>
 
+      {/* Tabela Desktop */}
       <Card className="hidden md:block p-6 bg-white border border-[#04164E]/10 overflow-x-auto">
         <table className="w-full">
           <thead>
@@ -219,7 +221,6 @@ export default function ExtratoPage() {
               <th className="text-left py-3 px-4 text-[#04164E] font-semibold text-sm">Data</th>
               <th className="text-left py-3 px-4 text-[#04164E] font-semibold text-sm">Valor</th>
               <th className="text-left py-3 px-4 text-[#04164E] font-semibold text-sm">Status</th>
-              <th className="text-left py-3 px-4 text-[#04164E] font-semibold text-sm">Comprovante (PDF)</th>
             </tr>
           </thead>
           <tbody>
@@ -233,23 +234,13 @@ export default function ExtratoPage() {
                 <td className="py-4 px-4">
                   <Badge className="bg-[#00E000]/10 text-[#00E000] hover:bg-[#00E000]/20">{payment.status}</Badge>
                 </td>
-                <td className="py-4 px-4">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDownloadPdf(payment.arquivo)}
-                    className="text-[#04164E] border-[#04164E]/20 hover:bg-[#04164E]/5 text-xs bg-transparent"
-                  >
-                    <Download className="h-3 w-3 mr-2" />
-                    Baixar PDF
-                  </Button>
-                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </Card>
 
+      {/* Cards Mobile */}
       <div className="md:hidden space-y-4">
         {paymentData.map((payment) => (
           <Card key={payment.id} className="p-4 bg-white border border-[#04164E]/10">
@@ -258,7 +249,7 @@ export default function ExtratoPage() {
               <span className="text-[#04164E] font-semibold text-sm">{payment.competencia}</span>
             </div>
 
-            <div className="space-y-2 mb-4">
+            <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-[#04164E]/60">Data:</span>
                 <span className="text-[#04164E] font-medium">{payment.dataFormatada}</span>
@@ -270,14 +261,6 @@ export default function ExtratoPage() {
                 </span>
               </div>
             </div>
-
-            <Button
-              onClick={() => handleDownloadPdf(payment.arquivo)}
-              className="w-full bg-[#04164E] text-white hover:bg-[#04164E]/90 text-sm"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Baixar comprovante (PDF)
-            </Button>
           </Card>
         ))}
       </div>
