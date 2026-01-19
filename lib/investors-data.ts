@@ -112,11 +112,13 @@ export const INVESTORS: Investor[] = [
     name: "PRIME ASSESSORIA",
     aporte: 50000,
     percentualMensal: 1.5,
-    mesesAporte: 3,
-    numeroSaques: 2,
+    mesesAporte: 1,
+    numeroSaques: 1,
     tier: 1,
     documentFolder: "prime-assessoria",
-    comprovantes: [],
+    comprovantes: [
+      { id: 1, data: "2026-01-16", dataFormatada: "16/01/2026", competencia: "01/2026", valor: 750, status: "Pago", arquivo: "recibo-pagamento-2026-01-16.pdf" },
+    ],
   },
   {
     id: 5,
