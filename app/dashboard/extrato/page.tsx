@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useInvestor } from "@/contexts/investor-context"
+import { getComprovantePath } from "@/lib/investors-data"
 
 export default function ExtratoPage() {
   const router = useRouter()
@@ -20,31 +21,13 @@ export default function ExtratoPage() {
   const [competenceFilter, setCompetenceFilter] = useState("")
   const [activeFilters, setActiveFilters] = useState<string[]>([])
 
+  // Usa os comprovantes reais do investidor, ordenados por data (mais recente primeiro)
   const paymentData = useMemo(() => {
-    const payments = []
-    const today = new Date()
-
-    for (let i = 0; i < currentInvestor.numeroSaques; i++) {
-      // Data regressiva: cada saque 30 dias antes
-      const paymentDate = new Date(today)
-      paymentDate.setDate(paymentDate.getDate() - i * 30)
-
-      const day = String(paymentDate.getDate()).padStart(2, "0")
-      const month = String(paymentDate.getMonth() + 1).padStart(2, "0")
-      const year = paymentDate.getFullYear()
-
-      payments.push({
-        id: i + 1,
-        competence: `${month}/${year}`,
-        date: `${day}/${month}/${year}`,
-        value: currentInvestor.saqueMensal,
-        status: "Pago",
-        hasPdf: true,
-      })
-    }
-
-    return payments
-  }, [currentInvestor.numeroSaques, currentInvestor.saqueMensal])
+    const comprovantes = [...currentInvestor.comprovantes].sort((a, b) => 
+      new Date(b.data).getTime() - new Date(a.data).getTime()
+    )
+    return comprovantes
+  }, [currentInvestor.comprovantes])
 
   const applyFilters = () => {
     const filters: string[] = []
@@ -67,13 +50,13 @@ export default function ExtratoPage() {
     setActiveFilters(activeFilters.filter((f) => f !== filterToRemove))
   }
 
-  const handleDownloadPdf = (competence: string) => {
-    // Simular download de PDF
-    alert(`Download do comprovante de pagamento - Competência ${competence}`)
+  const handleDownloadPdf = (arquivo: string) => {
+    const path = getComprovantePath(currentInvestor.documentFolder, arquivo)
+    window.open(path, "_blank")
   }
 
-  const totalPaid = paymentData.reduce((sum, p) => sum + p.value, 0)
-  const lastPaymentDate = paymentData.length > 0 ? paymentData[0].date : "-"
+  const totalPaid = paymentData.reduce((sum, p) => sum + p.valor, 0)
+  const lastPaymentDate = paymentData.length > 0 ? paymentData[0].dataFormatada : "-"
 
   return (
     <div className="flex-1 p-4 md:p-8 overflow-y-auto">
@@ -242,10 +225,10 @@ export default function ExtratoPage() {
           <tbody>
             {paymentData.map((payment) => (
               <tr key={payment.id} className="border-b border-[#04164E]/5 hover:bg-[#04164E]/5 transition-colors">
-                <td className="py-4 px-4 text-[#04164E] font-medium text-sm">{payment.competence}</td>
-                <td className="py-4 px-4 text-[#04164E] text-sm">{payment.date}</td>
+                <td className="py-4 px-4 text-[#04164E] font-medium text-sm">{payment.competencia}</td>
+                <td className="py-4 px-4 text-[#04164E] text-sm">{payment.dataFormatada}</td>
                 <td className="py-4 px-4 text-[#04164E] font-semibold text-sm">
-                  {payment.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  {payment.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 </td>
                 <td className="py-4 px-4">
                   <Badge className="bg-[#00E000]/10 text-[#00E000] hover:bg-[#00E000]/20">{payment.status}</Badge>
@@ -254,8 +237,8 @@ export default function ExtratoPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleDownloadPdf(payment.competence)}
-                    className="text-[#04164E] border-[#04164E]/20 hover:bg-[#04164E]/5 text-xs"
+                    onClick={() => handleDownloadPdf(payment.arquivo)}
+                    className="text-[#04164E] border-[#04164E]/20 hover:bg-[#04164E]/5 text-xs bg-transparent"
                   >
                     <Download className="h-3 w-3 mr-2" />
                     Baixar PDF
@@ -272,24 +255,24 @@ export default function ExtratoPage() {
           <Card key={payment.id} className="p-4 bg-white border border-[#04164E]/10">
             <div className="flex items-start justify-between mb-3">
               <Badge className="bg-[#00E000]/10 text-[#00E000] hover:bg-[#00E000]/20">{payment.status}</Badge>
-              <span className="text-[#04164E] font-semibold text-sm">{payment.competence}</span>
+              <span className="text-[#04164E] font-semibold text-sm">{payment.competencia}</span>
             </div>
 
             <div className="space-y-2 mb-4">
               <div className="flex justify-between text-sm">
                 <span className="text-[#04164E]/60">Data:</span>
-                <span className="text-[#04164E] font-medium">{payment.date}</span>
+                <span className="text-[#04164E] font-medium">{payment.dataFormatada}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#04164E]/60 text-sm">Valor:</span>
                 <span className="text-[#04164E] font-bold text-lg">
-                  {payment.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  {payment.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 </span>
               </div>
             </div>
 
             <Button
-              onClick={() => handleDownloadPdf(payment.competence)}
+              onClick={() => handleDownloadPdf(payment.arquivo)}
               className="w-full bg-[#04164E] text-white hover:bg-[#04164E]/90 text-sm"
             >
               <Download className="h-4 w-4 mr-2" />
